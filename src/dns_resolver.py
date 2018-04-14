@@ -25,7 +25,7 @@ def get_the_dst_ip(req_string):
         if valid_domain_check(req_string):
             return [dns_res.address for dns_res in resolver.query(req_string, 'A')]#A represents host address
         elif valid_ip_check(req_string):
-            return req_string#represents the req_string is the dst ip
+            return [req_string]#represents the req_string is the dst ip
         else:
             raise ReqFormatsError("the request domain or ip is invalid.")
     except resolver.NXDOMAIN:
