@@ -1,7 +1,7 @@
 import socket
 import requests
 import ssl
-from src import get_the_dst_ip
+import threading
 
 def recvall(sock, buffer_size):
     '''
@@ -45,5 +45,5 @@ mysocket.listen(1)
 
 while True:
     conn, address = mysocket.accept()
-    print(address)
-    handle(conn)
+    t = threading.Thread(target=handle, args=(conn, ))
+    t.start()

@@ -7,7 +7,7 @@ from .socks5 import HandleSocks5Verify, HandleSocks5RequestData, BuildReplyData,
 from .utils import recvall
 
 
-socket.setdefaulttimeout(1)
+
 class Proxy:
     '''
     the proxy server code.
@@ -25,6 +25,7 @@ class Proxy:
         self._fd_count = {}
         self._fd_to_fd = {}
         self._fd_reply = {}
+
     def start(self):
         while True:
             events = self._epoll.poll(-1)
@@ -51,9 +52,8 @@ class Proxy:
                                 print(addr, port)
                                 remote_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                                 remote_sock.setblocking(0)
-                                remote_sock.settimeout(0.5)
                                 remote_sock.connect((addr, port))
-                            except socket.timeout:
+                            except socket.error:
                                 self._fd_reply[fd] = BuildConnectRefuseData()
                                 self._epoll.modify(fd, select.EPOLLOUT)
                                 continue

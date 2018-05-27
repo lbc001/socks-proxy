@@ -112,6 +112,24 @@ class SockV5Server(object):
                         self.recv_and_send_msg(server_sock, client_sock)
             except Exception:
                 self.close_sock_and_exit(client_sock, server_sock)
+        '''
+        print "123444"
+        inputs = [client_sock, server_sock]
+        my_epoll = select.epoll()
+        fd_to_socket = {}
+        for sock in inputs:
+            fd_to_socket[sock.fileno()] = sock
+            my_epoll.register(sock.fileno(), select.EPOLLIN)
+        while True:
+            events = my_epoll.poll(-1)
+            for fd, event in events:
+                sock = fd_to_socket[fd]
+                if event & select.EPOLLIN:
+                    if sock == client_sock:
+                        self.recv_and_send_msg(client_sock, server_sock)
+                    elif sock == server_sock:
+                        self.recv_and_send_msg(server_sock, client_sock)
+        '''
 
     def recv_and_send_msg(self, recv_sock, send_sock):
         # recv() is a block I/O in the views of programmer, it returns '' when
