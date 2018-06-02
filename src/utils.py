@@ -8,8 +8,11 @@ def recvall(socket, buffer_size):
     '''
     data = b""
     while True:
-        part = socket.recv(buffer_size)
-        data += part
-        if len(part) < buffer_size:
-            break
+        try:
+            part = socket.recv(buffer_size)
+            data += part
+            if len(part) < buffer_size:
+                break
+        except:
+            continue
     return data

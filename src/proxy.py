@@ -3,6 +3,7 @@ the main proxy code in my project.
 '''
 import socket
 import select
+from .dns_resolver import get_the_dst_ip
 from .socks5 import HandleSocks5Verify, HandleSocks5RequestData, BuildReplyData, BuildConnectRefuseData
 from .utils import recvall
 
@@ -17,7 +18,7 @@ class Proxy:
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._socket.bind((ip, port))
         self._socket.listen(1)
-        self._socket.setblocking(0)
+        self._socket.setblocking(False)
         self._buffer_size = 1024
         self._epoll = select.epoll()
         self._epoll.register(self._socket.fileno(), select.EPOLLIN|select.EPOLLET)
@@ -33,7 +34,7 @@ class Proxy:
                 sock = self._fd_to_socket[fd]
                 if sock == self._socket:
                     conn, _ = self._socket.accept()
-                    conn.setblocking(0)
+                    conn.setblocking(False)
                     self._epoll.register(conn.fileno(), select.EPOLLIN|select.EPOLLET)
                     self._fd_to_socket[conn.fileno()] = conn
                     self._fd_count[conn.fileno()] = 0
@@ -47,13 +48,13 @@ class Proxy:
                             self._fd_reply[fd] = HandleSocks5Verify(data)
                             self._epoll.modify(fd, select.EPOLLOUT)
                         elif self._fd_count[fd] == 1:
-                            try:
-                                addr, port = HandleSocks5RequestData(data)
-                                print(addr, port)
-                                remote_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                                remote_sock.setblocking(0)
-                                remote_sock.connect((addr, port))
-                            except socket.error:
+                            addr, port = HandleSocks5RequestData(data)
+                            addr_host = get_the_dst_ip(addr)[0]
+                            remote_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                            remote_sock.setblocking(False)
+                            result = remote_sock.connect_ex((addr_host, port))
+                            rr, rw, error = select.select([], [remote_sock], [], 0.1)
+                            if rw == []:
                                 self._fd_reply[fd] = BuildConnectRefuseData()
                                 self._epoll.modify(fd, select.EPOLLOUT)
                                 continue
@@ -67,13 +68,11 @@ class Proxy:
                         else:
                             remote_fd = self._fd_to_fd[fd]
                             self._fd_reply[remote_fd] = data
-                            #self._epoll.modify(fd, select.EPOLLOUT)
                             self._epoll.modify(remote_fd, select.EPOLLOUT)
                         self._fd_count[fd] += 1
                     else:
                         remote_fd = self._fd_to_fd[fd]
                         self._fd_reply[remote_fd] = data
-                        #self._epoll.modify(fd, select.EPOLLOUT)
                         self._epoll.modify(remote_fd, select.EPOLLOUT)
                 elif event & select.EPOLLOUT:
                     if fd in self._fd_reply and self._fd_reply[fd] != b"":

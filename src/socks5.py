@@ -4,7 +4,8 @@ handle the sock5 data.
 import socket
 
 def HandleSocks5Verify(data):
-    assert(data == b"\x05\x01\x00")
+    #print(data)
+    #assert(data == b"\x05\x01\x00")
     return b"\x05\x00"
 
 def HandleSocks5RequestData(data):
